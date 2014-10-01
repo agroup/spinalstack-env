@@ -149,7 +149,7 @@ config:
   nova_ssh_public_key: ssh-rsa XXXXX nova@openstack
   nova_ssh_private_key: |
     -----BEGIN RSA PRIVATE KEY-----
-XXXX
+    XXXX
     -----END RSA PRIVATE KEY-----
 
   glance_db_password: secrete
