@@ -58,7 +58,7 @@ hosts:
 config:
   domain: etest
   user: root
-  puppet_master: install-server
+  puppet_master: install-server.etest
   parallel_steps: 2|4|5
   region: etest
   dns_ips: 8.8.8.8
