@@ -57,7 +57,7 @@ hosts:
 
 config:
   domain: etest
-  user: jenkins
+  user: root
   puppet_master: install-server
   parallel_steps: 2|4|5
   region: etest
