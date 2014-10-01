@@ -56,23 +56,23 @@ hosts:
       cloud::object::storage::swift_zone: 3
 
 config:
-  domain: ring.enovance.com
+  domain: etest
   user: jenkins
   puppet_master: install-server
   parallel_steps: 2|4|5
-  region: enovance
-  dns_ips: 94.143.114.197
-  vip_public_fqdn: openstack-vip.ring.enovance.com
-  vip_public_ip: 10.151.0.253
-  vip_admin_ip: 10.151.0.253
-  vip_admin_fqdn: openstack-vip.ring.enovance.com
-  vip_internal_fqdn: openstack-vip.ring.enovance.com
+  region: etest
+  dns_ips: 8.8.8.8
+  vip_public_fqdn: etest
+  vip_public_ip: 10.0.0.100
+  vip_admin_ip: 10.0.0.100
+  vip_admin_fqdn: openstack-vip.etest
+  vip_internal_fqdn: openstack-vip.etest
   endpoint_proto: https
 
-  public_network: 10.151.0.0/24
-  internal_network: 10.151.0.0/24
-  admin_network: 10.151.0.0/24
-  storage_network: 10.151.0.0/24
+  public_network: 10.0.0.0/24
+  internal_network: 10.0.0.0/24
+  admin_network: 10.0.0.0/24
+  storage_network: 10.0.0.0/24
   
   ntp_servers:
     - 0.debian.pool.ntp.org
@@ -88,7 +88,7 @@ config:
   storage_netif: eth0
   lb_public_netif: eth0
   lb_internal_netif: eth0
-  external_netif: eth1
+  external_netif: eth0
 
   public_netif_ip: "%{::ipaddress_eth0}"
   internal_netif_ip: "%{::ipaddress_eth0}"
@@ -122,18 +122,18 @@ config:
 
   db_allowed_hosts:
     - openstack%
-    - 10.151.0.%
+    - 10.0.0.%
 
   haproxy_auth: root:secrete
 
   secret_key: secrete
 
   rabbit_password: secrete
-  rabbit_host: 10.151.0.54
+  rabbit_host: 10.0.0.51
   rabbit_hosts:
-    - 10.151.0.54:5672
-    - 10.151.0.55:5672
-    - 10.151.0.56:5672
+    - 10.0.0.51:5672
+    - 10.0.0.52:5672
+    - 10.0.0.53:5672
 
   ks_neutron_password: secrete
   neutron_db_password: secrete
