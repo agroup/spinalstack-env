@@ -12,13 +12,13 @@ infra: 3nodes
 hosts:
   install-server:
     profile: install-server
-    ip: 10.151.0.48
+    ip: 10.0.0.2
     config:
       cloud::logging::agent::syslog_enable: false
       kibana3::manage_ws: false
   openstack1:
     profile: openstack-full
-    ip: 10.151.68.54
+    ip: 10.0.0.51
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
@@ -32,7 +32,7 @@ hosts:
       cloud::object::storage::swift_zone: 1
   openstack2:
     profile: openstack-full
-    ip: 10.151.0.55
+    ip: 10.151.0.52
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
@@ -44,7 +44,7 @@ hosts:
       cloud::object::storage::swift_zone: 2
   openstack3:
     profile: openstack-full
-    ip: 10.151.0.56
+    ip: 10.151.0.53
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
