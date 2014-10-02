@@ -1,13 +1,13 @@
 module:
-  ssh+git://derekh@192.168.1.107/home/derekh/workarea/etest/puppet-openstack-cloud
+  ssh+git://derekh@46.231.113.2:8022/home/derekh/workarea/etest/puppet-openstack-cloud
 serverspec:
-  ssh+git://derekh@192.168.1.107/home/derekh/workarea/etest/openstack-serverspec
+  ssh+git://derekh@46.231.113.2:8022/home/derekh/workarea/etest/openstack-serverspec
 environment:
   etest
 infrastructure:
-   ssh+git://derekh@192.168.1.107/home/derekh/workarea/etest/openstack-yaml-infra-3nodes
+   ssh+git://derekh@46.231.113.2:8022/home/derekh/workarea/etest/openstack-yaml-infra-3nodes
 jenkins:
-  ssh+git://derekh@192.168.1.107/home/derekh/workarea/etest/jjb-openstack
+  ssh+git://derekh@46.231.113.2:8022/home/derekh/workarea/etest/jjb-openstack
 infra: 3nodes
 hosts:
   install-server:
