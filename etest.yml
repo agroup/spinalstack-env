@@ -67,7 +67,7 @@ config:
   vip_admin_ip: 10.0.0.100
   vip_admin_fqdn: openstack-vip.etest
   vip_internal_fqdn: openstack-vip.etest
-  endpoint_proto: https
+  endpoint_proto: http
 
   public_network: 10.0.0.0/24
   internal_network: 10.0.0.0/24
