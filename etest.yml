@@ -165,9 +165,9 @@ config:
   ks_heat_password: secrete
   heat_auth_encryption_key: secrete
   ceph_osd_devices:
-    - loop0
-  ceph_fsid: XXXX
-  ceph_mon_secret: secrete
+    - sda
+  ceph_fsid: 61d5c6c8-c57c-467d-8e4f-4681739ebd51
+  ceph_mon_secret: AQBhcy5UkMWmNRAANEKFu8JOfDvfYofWLZecmg==
   cinder_rbd_pool: volumes
   cinder_rbd_user: cinder
 
