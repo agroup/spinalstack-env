@@ -88,7 +88,7 @@ config:
   storage_netif: eth0
   lb_public_netif: eth0
   lb_internal_netif: eth0
-  external_netif: eth0
+  external_netif: eth1
 
   public_netif_ip: "%{::ipaddress_eth0}"
   internal_netif_ip: "%{::ipaddress_eth0}"
