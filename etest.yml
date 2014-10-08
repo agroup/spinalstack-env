@@ -12,7 +12,7 @@ infra: 3nodes
 hosts:
   install-server:
     profile: install-server
-    ip: 10.0.0.2
+    ip: 192.0.2.1
     config:
       cloud::logging::agent::syslog_enable: false
       kibana3::manage_ws: false
