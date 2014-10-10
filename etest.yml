@@ -18,7 +18,7 @@ hosts:
       kibana3::manage_ws: false
   openstack1:
     profile: openstack-full
-    ip: 10.0.0.51
+    ip: 192.0.2.3
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
@@ -32,7 +32,7 @@ hosts:
       cloud::object::storage::swift_zone: 1
   openstack2:
     profile: openstack-full
-    ip: 10.0.0.52
+    ip: 192.0.2.4
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
@@ -44,7 +44,7 @@ hosts:
       cloud::object::storage::swift_zone: 2
   openstack3:
     profile: openstack-full
-    ip: 10.0.0.53
+    ip: 192.0.2.5
     config:
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
@@ -63,16 +63,16 @@ config:
   region: etest
   dns_ips: 8.8.8.8
   vip_public_fqdn: etest
-  vip_public_ip: 10.0.0.100
-  vip_admin_ip: 10.0.0.100
+  vip_public_ip: 192.0.2.20
+  vip_admin_ip: 192.0.2.20
   vip_admin_fqdn: openstack-vip.etest
   vip_internal_fqdn: openstack-vip.etest
   endpoint_proto: http
 
-  public_network: 10.0.0.0/24
-  internal_network: 10.0.0.0/24
-  admin_network: 10.0.0.0/24
-  storage_network: 10.0.0.0/24
+  public_network: 192.0.2.0/24
+  internal_network: 192.0.2.0/24
+  admin_network: 192.0.2.0/24
+  storage_network: 192.0.2.0/24
   
   ntp_servers:
     - 0.debian.pool.ntp.org
@@ -122,18 +122,18 @@ config:
 
   db_allowed_hosts:
     - openstack%
-    - 10.0.0.%
+    - 192.0.2.%
 
   haproxy_auth: root:secrete
 
   secret_key: secrete
 
   rabbit_password: secrete
-  rabbit_host: 10.0.0.51
+  rabbit_host: 192.0.2.3
   rabbit_hosts:
-    - 10.0.0.51:5672
-    - 10.0.0.52:5672
-    - 10.0.0.53:5672
+    - 192.0.2.3:5672
+    - 192.0.2.4:5672
+    - 192.0.2.5:5672
 
   ks_neutron_password: secrete
   neutron_db_password: secrete
