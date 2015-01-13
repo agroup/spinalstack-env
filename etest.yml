@@ -9,6 +9,7 @@ infrastructure:
 jenkins:
   https://github.com/enovance/jjb-openstack.git
 infra: 3nodes
+scenario: 3nodes
 hosts:
   install-server:
     profile: install-server
