@@ -1,13 +1,13 @@
 module:
-  http://goodsquishy.com/downloads/repos-etest/puppet-openstack-cloud.git
+  https://github.com/enovance/puppet-openstack-cloud.git
 serverspec:
-  http://goodsquishy.com/downloads/repos-etest/openstack-serverspec.git
+  https://github.com/enovance/openstack-serverspec.git
 environment:
   etest
 infrastructure:
-   http://goodsquishy.com/downloads/repos-etest/openstack-yaml-infra-3nodes.git
+  https://github.com/agroup/openstack-yaml-infra-3nodes.git
 jenkins:
-  http://goodsquishy.com/downloads/repos-etest/jjb-openstack.git
+  https://github.com/agroup/jjb-openstack.git
 infra: 3nodes
 hosts:
   install-server:
