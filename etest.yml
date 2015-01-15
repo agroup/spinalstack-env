@@ -10,79 +10,360 @@ jenkins:
   https://github.com/enovance/jjb-openstack.git
 infra: 3nodes
 scenario: 3nodes
+profiles:
+  install-server:
+    steps:
+      1:
+        roles:
+          - cloud::logging::server
+          - cloud::monitoring::server::sensu
+  openstack-full:
+    steps:
+      1:
+        roles:
+          - cloud::logging::agent
+      3:
+        roles:
+          - cloud::monitoring::agent::sensu
 hosts:
   install-server:
     profile: install-server
     ip: 192.0.2.1
     config:
+      apache::mod::passenger::passenger_root: '/usr/local/share/gems/gems/passenger-4.0.57'
+      apache::mod::passenger::mod_lib_path: '/usr/local/share/gems/gems/passenger-4.0.57/buildout/apache2/'
+      cloud::install::puppetmaster::autosign_domains:
+        - '*'
+      cloud::install::puppetmaster::master_configuration:
+        ssl_client_header:
+          setting: ssl_client_header
+          value: SSL_CLIENT_S_DN
+        ssl_client_verify_header:
+          setting: ssl_client_verify_header
+          value: SSL_CLIENT_VERIFY
+      cloud::install::puppetmaster::agent_configuration:
+        certname:
+          setting: certname
+          value: "%{::fqdn}"
+        server:
+          setting: server
+          value: "%{::fqdn}"
+      cloud::install::puppetmaster::puppetmaster_vhost_configuration:
+        puppetmasterd:
+         docroot: '/usr/share/puppet/rack/puppetmasterd/public'
+         port: 8140
+         ssl: true
+         ssl_protocol: 'ALL -SSLv2 -SSLv3'
+         ssl_cipher: 'ALL:!aNULL:!eNULL:!DES:!3DES:!IDEA:!SEED:!DSS:!PSK:!RC4:!MD5:+HIGH:+MEDIUM:!LOW:!SSLv2:!EXP'
+         ssl_honorcipherorder: 'On'
+         ssl_cert: "/var/lib/puppet/ssl/certs/%{::fqdn}.pem"
+         ssl_key: "/var/lib/puppet/ssl/private_keys/%{::fqdn}.pem"
+         ssl_chain: "/var/lib/puppet/ssl/certs/ca.pem"
+         ssl_ca: "/var/lib/puppet/ssl/certs/ca.pem"
+         ssl_verify_client: optional
+         ssl_verify_depth: 1
+         ssl_options:
+           - +StdEnvVars
+           - +ExportCertData
+         request_headers:
+           - 'unset X-Forwarded-For'
+           - "set X-SSL-Subject %%{}{SSL_CLIENT_S_DN}e"
+           - "set X-Client-DN %%{}{SSL_CLIENT_S_DN}e"
+           - "set X-Client-Verify %%{}{SSL_CLIENT_VERIFY}e"
+         rack_base_uris: '/'
+         add_default_charset: 'UTF-8'
+      puppetdb::master::config::puppetdb_server: "%{::fqdn}"
+      puppetdb::master::config::manage_report_processor: true
+      puppetdb::master::config::enable_reports: true
+      puppetdb::master::config::strict_validation: false
       cloud::logging::agent::syslog_enable: false
+      fluentd::version: '2'
+      elasticsearch::init_template: elasticsearch.RedHat.erb
       kibana3::manage_ws: false
+      kibana3::config_es_server: "%{::ipaddress}"
+      kibana3::config_kibana_index: fluentd
+      sensu::server: true
+      sensu::api: true
+      sensu::subscriptions:
+        - base
+        - openstack-api
+      sensu::rabbitmq_password: rabbitpassword
+      sensu::rabbitmq_host: 10.151.68.54
+      sensu::rabbitmq_vhost: '/sensu'
+      sensu::install_repo: false
+      uchiwa::install_repo: false
+      uchiwa::user: admin
+      uchiwa::pass: password
+      uchiwa::host: "%{::ipaddress}"
+      uchiwa::install_repo: false
+      cloud::monitoring::server::sensu::checks:
+        'check-mem' :
+          command: '/etc/sensu/plugins/check-mem.sh -w 150 -c 100'
+          subscribers: base
+          standalone: false
+        'check_disk' :
+          command: '/usr/lib64/nagios/plugins/check_disk -w 80 -c 90 --path /'
+          subscribers: base
+          standalone: false
+        'check_load' :
+          command: '/usr/lib64/nagios/plugins/check_load -w 0.7,0.6,0.5 -c 0.9,0.8,0.7'
+          subscribers: base
+          standalone: false
+        'check_swap' :
+          command: '/usr/lib64/nagios/plugins/check_swap -w 50% -c 25%'
+          subscribers: base
+          standalone: false
+      cloud::monitoring::server::sensu::plugins:
+        'https://raw.githubusercontent.com/sensu/sensu-community-plugins/master/plugins/system/check-mem.sh' :
+          type: url
+      cloud::logging::agent::sources:
+        syslog:
+          configfile: syslog
+          type: syslog
+          tag: system.syslog
+          config:
+            port: 5140
+            bind: 0.0.0.0
+            with_priority:
+      cloud::logging::agent::matches:
+        elasticsearch:
+          configfile: elasticsearch
+          pattern: "**"
+          type: elasticsearch
+          config:
+            logstash_format: true
+            index_name: fluentd
+            type_name: fluentd
+            port: 9200
+            host: "%{::ipaddress}"
   openstack1:
     profile: openstack-full
     ip: SERVER1
     config:
+      cloud::network::dhcp::veth_mtu: 1430
+      cloud::spof::cluster_members: "openstack1 openstack2 openstack3"
+      cloud::compute::hypervisor::vm_rbd: true
+      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
       cloud::storage::rbd::cluster_network: "%{hiera('ceph_cluster_network')}"
       cloud::storage::rbd::osd::devices: "%{hiera('ceph_osd_devices')}"
-      cloud::loadbalancer::keepalived_state: BACKUP
-      cloud::loadbalancer::keepalived_priority: 49
-      cloud::storage::rbd::pools::setup_pools: true
-      cloud::storage::rbd::key::enabled: true
-      cloud::object::storage::swift_zone: 1
+      cloud::dashboard::ssl_forward: true
+      cloud::loadbalancer::horizon_port: "443"
+      cloud::loadbalancer::cinder_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::ec2_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_registry_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cfn_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cloudwatch_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_admin_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::neutron_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::nova_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::swift_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::horizon_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::spice_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::object::storage::fstype: loopback
+      cloud::object::storage::device_config_hash:
+        loop0:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop1:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop2:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+      cloud::object::storage::ring_container_device: loop0
+      cloud::object::storage::ring_account_device: loop0
+      fluentd::version: '2'
+      sensu::subscriptions:
+        - base
+        - ceph
+        - openstack-swift
+        - openstack-amqp
+      sensu::rabbitmq_password: rabbitpassword
+      sensu::rabbitmq_host: SERVER1
+      sensu::rabbitmq_vhost: '/sensu'
+      sensu::install_repo: false
   openstack2:
     profile: openstack-full
     ip: SERVER2
     config:
+      cloud::network::dhcp::veth_mtu: 1430
+      cloud::spof::cluster_members: "openstack1 openstack2 openstack3"
+      cloud::compute::hypervisor::vm_rbd: true
+      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
       cloud::storage::rbd::cluster_network: "%{hiera('ceph_cluster_network')}"
       cloud::storage::rbd::osd::devices: "%{hiera('ceph_osd_devices')}"
-      cloud::loadbalancer::keepalived_state: BACKUP
-      cloud::loadbalancer::keepalived_priority: 49
-      cloud::object::storage::swift_zone: 2
+      cloud::dashboard::ssl_forward: true
+      cloud::loadbalancer::horizon_port: "443"
+      cloud::loadbalancer::cinder_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::ec2_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_registry_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cfn_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cloudwatch_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_admin_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::neutron_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::nova_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::swift_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::horizon_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::spice_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::object::storage::fstype: loopback
+      cloud::object::storage::device_config_hash:
+        loop0:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop1:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop2:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+      cloud::object::storage::ring_container_device: loop0
+      cloud::object::storage::ring_account_device: loop0
+      fluentd::version: '2'
+      sensu::subscriptions:
+        - base
+        - ceph
+        - openstack-swift
+        - openstack-amqp
+      sensu::rabbitmq_password: rabbitpassword
+      sensu::rabbitmq_host: SERVER1
+      sensu::rabbitmq_vhost: '/sensu'
+      sensu::install_repo: false
   openstack3:
     profile: openstack-full
     ip: SERVER3
     config:
+      cloud::network::dhcp::veth_mtu: 1430
+      cloud::spof::cluster_members: "openstack1 openstack2 openstack3"
+      cloud::compute::hypervisor::vm_rbd: true
+      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
       cloud::storage::rbd::cluster_network: "%{hiera('ceph_cluster_network')}"
       cloud::storage::rbd::osd::devices: "%{hiera('ceph_osd_devices')}"
-      cloud::loadbalancer::keepalived_state: MASTER
-      cloud::loadbalancer::keepalived_priority: 50
-      cloud::object::storage::swift_zone: 3
-
+      cloud::dashboard::ssl_forward: true
+      cloud::loadbalancer::horizon_port: "443"
+      cloud::loadbalancer::cinder_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::ec2_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::glance_registry_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cfn_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_cloudwatch_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::heat_api_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::keystone_admin_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::neutron_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::nova_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::swift_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::horizon_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::loadbalancer::spice_bind_options: "ssl crt /etc/ssl/certs/ci.pem"
+      cloud::object::storage::fstype: loopback
+      cloud::object::storage::device_config_hash:
+        loop0:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop1:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+        loop2:
+          base_dir: /srv/loopback_device
+          mnt_base_dir: /srv/node
+          byte_size: 1024
+          seek: 10000000
+          fstype: xfs
+      cloud::object::storage::ring_container_device: loop0
+      cloud::object::storage::ring_account_device: loop0
+      fluentd::version: '2'
+      sensu::subscriptions:
+        - base
+        - ceph
+        - openstack-swift
+        - openstack-amqp
+      sensu::rabbitmq_password: rabbitpassword
+      sensu::rabbitmq_host: SERVER1
+      sensu::rabbitmq_vhost: '/sensu'
+      sensu::install_repo: false
 config:
+  current_version: I.1.2.1
+  next_version: I.1.3.0
+  edeploy_master: os-ci-edeploy.etest
   domain: etest
-  user: root
-  puppet_master: install-server.etest
-  passenger_root: /usr/local/share/gems/gems/passenger-4.0.57
+  user: jenkins
+  puppet_master: os-ci-test4.etest
   parallel_steps: 2|4|5
-  region: etest
+  region: enovance-ci
   dns_ips: 8.8.8.8
-  vip_public_fqdn: etest
+  vip_public_fqdn: os-ci-vip.etest
   vip_public_ip: 192.0.2.20
   vip_admin_ip: 192.0.2.20
-  vip_admin_fqdn: openstack-vip.etest
-  vip_internal_fqdn: openstack-vip.etest
-  endpoint_proto: http
+  vip_internal_ip: 192.0.2.20
+  galera_ip: 192.0.2.20
+  vip_admin_fqdn: os-ci-vip.etest
+  vip_internal_fqdn: os-ci-vip.etest
+  endpoint_protocol: https
+
+  ceilometer_admin_proto: http
+  ceilometer_internal_proto: http
+  ceilometer_public_proto: http
+  mgmt_names: ['os-ci-test10', 'os-ci-test11', 'os-ci-test12']
+  mgmt_internal_ips: ['SERVER1', 'SERVER2', 'SERVER3']
+  spof_cluster_members : 'openstack1 openstack2 openstack3'
+  horizon_allowed_hosts:
+    - os-ci-vip.etest
 
   public_network: 192.0.2.0/24
   internal_network: 192.0.2.0/24
   admin_network: 192.0.2.0/24
   storage_network: 192.0.2.0/24
+
+  mongo_replset_members:
+    - SERVER1:27017
+    - SERVER2:27017
+    - SERVER3:27017
   
   ntp_servers:
-    - 0.rhel.pool.ntp.org
-    - 1.rhel.pool.ntp.org
-    - 2.rhel.pool.ntp.org
-    - 3.rhel.pool.ntp.org
+    - 0.debian.pool.ntp.org
+    - 1.debian.pool.ntp.org
+    - 2.debian.pool.ntp.org
+    - 3.debian.pool.ntp.org
 
-  root_password: secrete
+  root_password: $1$2X/chMfy$CuJ4xPZY0WO2pRfIm5djn/
   
   public_netif: eth0
   internal_netif: eth0
@@ -98,82 +379,116 @@ config:
   storage_netif_ip: "%{::ipaddress_eth0}"
 
   keystone_db_user: keystone
-  keystone_db_password: secrete
-  ks_admin_email: dev@enovance.com
-  ks_admin_password: secrete
+  keystone_db_password: unset
+  ks_admin_email: dev@redhat.com
+  ks_admin_password: unset
   ks_admin_tenant: admin
-  ks_admin_token: secrete
+  ks_admin_token: unset
 
-  swift_api: true
-  ks_swift_dispersion_password: secrete
-  ks_swift_password: secrete
-  swift_hash_suffix: ni2aef8ich3oo
+  ks_swift_dispersion_password: unset
+  ks_swift_password: unset
+  swift_hash_suffix: unset
   replicas: 3
   statsd_host: 127.0.0.1
-  swift_zone:
-    openstack1: 1
-    openstack2: 2
-    openstack3: 3
 
-  mysql_root_password: secrete
+  mysql_root_password: unset
   mysql_sys_maint_user: sys-maint
-  mysql_sys_maint_password: secrete
-  galera_clustercheck_dbuser: clustercheck
-  galera_clustercheck_dbpassword: clusterpassword!
+  mysql_sys_maint_password: unset
+  galera_clustercheck_dbuser: clustercheckuser
+  galera_clustercheck_dbpassword: unset
   galera_master_name: openstack1
 
   db_allowed_hosts:
     - openstack%
     - 192.0.2.%
 
-  haproxy_auth: root:secrete
+  haproxy_auth: root:unset
 
-  secret_key: secrete
+  secret_key: unset
 
-  rabbit_password: secrete
+  rabbit_password: unset
   rabbit_host: SERVER1
   rabbit_hosts:
     - SERVER1:5672
     - SERVER2:5672
     - SERVER3:5672
 
-  ks_neutron_password: secrete
-  neutron_db_password: secrete
+  ks_neutron_password: unset
+  neutron_db_password: unset
   ks_neutron_admin_proto: https
-  neutron_type_drivers: gre
+  neutron_type_drivers:
+    - gre
   neutron_mechanism_drivers: openvswitch
   neutron_tunnel_id_ranges: 1:10000
-  neutron_firewall_driver: neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
-  neutron_metadata_proxy_shared_secret: secrete
+  neutron_firewall_driver: neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirew
+  neutron_metadata_proxy_shared_secret: unset
       
-  ks_nova_password: secrete
-  nova_db_password: secrete
-  nova_ssh_public_key: ssh-rsa XXXXX nova@openstack
+  ks_nova_password: unset
+  nova_db_password: unset
+  nova_ssh_public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD6afA+E/E/I4NnbnmVkFxKS0sRh8NX+n0UKwfdM7OUw2GdSiABO51Jx5ZcNW4E8GRGZ+9fRlYYTtfoOb2TLe4GdcH9R1MgdG0nXVqIrSkwKtvHS0Eue+xchEinYwSHVHaRACjncwsKXEsf4h4tWl2ZjtAQfW7f9xSn5v/gXB/3P9t+UExWXW7mE0fwt+luinzCyKxD0dbYiHbW+v3a0ZezM3nmMT9jFKZp0yHwOzyc7J1GiuwjVgphFACzS2FMHltLIF2VOzm9g9XZZ33LRARXfFLUjVKx2BpgK3Tw2Em5bbrk7717Cl06mSa6j/fOqP8XW6V6i7FT9qZxuD/Zllf nova@openstack
   nova_ssh_private_key: |
     -----BEGIN RSA PRIVATE KEY-----
-    XXXX
+    MIIEpQIBAAKCAQEAw+mnwPhPxPyODZ255lZBcSktLEYfDV/p9FCsH3TOzlMNhnUo
+    gATudSceWXDVuBPBkRmfvX0ZWGE7X6Dm9ky3uBnXB/UdTIHRtJ11aiK0pMCrbx0t
+    BLnvsXIRIp2MEh1R2kQAo53MLClxLH+IeLVpdmY7QEH1u3/cUp+b/4Fwf9z/bflB
+    MVl1u5hNH8Lfpbop8wsisQ9HW2Ih21vr92tGXszN55jE/YxSmadMh8Ds8nOydRor
+    sI1YKYRQAs0thTB5bSyBdlTs5vYPV2Wd9y0QEV3xS1I1SsdgaYCt08NhJuW265O+
+    9ewpdOpkmuo/3zqj/F1uleouxU/amcbg/2ZZXwIDAQABAoIBAQCt8/bm6dRydUlw
+    n57j/ayn3Mbma/DAgGyMaWEboSzLmIUG4VovqbFNxok1I3IwuyIBQ35J0x1BEzyT
+    4ZuSEHaEejUrNKJqP07Dj5gkwGIjc4wE4iQJ8Ur6BO1gDgHER9JY+k6S+NbEU5vQ
+    xgCYJYRaA9YSbT7S2Gn51wy9puIMNM+7Qq7R6OWOG/BVLlamUAdRItW50FmlHFjb
+    98xFi2rvqlTmSAjExxuoica+kbUDuvNSiGxwqMSFopra1Y64h/toxLoLlzUhmoA9
+    T/e8yQPJ5j937eXNaZV8B+iZul33s8Fe3Zm9oyPeu4yYX2/xiFfqiW6YT2AmoydU
+    T/frq5AxAoGBAPfk03w41eH4Gzdvy6EGnUdRDcRx2CvYwjjtVf7+8IjU0p01Rok3
+    hXSdPiFioi58QDsaMWFwXCjsodenjzTK09lSdzK12lKtnAGGpNw7c4gXV+IOjOF7
+    vHmXIRyiwYIGzTtuJpcwlewj8hycGJeTWjZCPS37BDVTIXbg4MEBBw9XAoGBAMpR
+    rwTDMhUZSl4ZcwvVRQs088c858FSjI/WiomLeG27FehjCqgUtF1y2NW5/9l4tpQZ
+    GerOJMO1TmjLTKQN3KieOrIFU7I6O7Zv77/7xDpNijjK3eTvo8YJEpJ25RM3nZQi
+    80z7yIAdrA6y/O12YInwuWeh6BRjJt8Lw0/vOSk5AoGBAJk022AS4F1gMbH5bih/
+    JgVFmvSmR6wRszfrtxJ6Db8DiYePvaBgqCKCbDvF8eY49JmSfqJyBwNj/EKEVIWU
+    NYpC5Vh5/AzNL3Xh+VIDjEu34aDczUUubDXZqaVBEceC3KS2VzNp276uGJyF/Mzx
+    TPfryFP6p4ctcak/IqkmMW7RAoGBAKtrmkcGvCB0VTZ1iay0/tMIAqUFTbfXIZGd
+    zbPMoDUZFu7XO+g94rRq4p30AntYdBn3SqZQE4Ze0BiqaD14IUYdCs5bBRc1j/J7
+    1T9tKk3b9Qk5mdin0rOwbDP82Qr3TGR/WHYZv0AN5AJwVS095334oJ7V57WebQj/
+    BnVr05rBAoGAEkNaha20d6N2xVq6vhazOhmrpJmpIKLr5smbxJRDgF4k3nZQYZzT
+    qC9j13ia6iinMitCK9vP/7pyMmy6T6IwA/qdYGj+4RgejMXqbmT/iTAFbWQ9BWKJ
+    psFiWsmiWxSM/hFMiG9Z+kKsbjtohqK8RrkuoQY7PZhhvhVtt7Wkhd8=
     -----END RSA PRIVATE KEY-----
 
-  glance_db_password: secrete
-  ks_glance_password: secrete
+  glance_db_password: unset
+  ks_glance_password: unset
 
-  ceilometer_secret: secrete
-  ks_ceilometer_password: secrete
+  ceilometer_secret: unset
+  ks_ceilometer_password: unset
 
-  cinder_db_password: secrete
-  ks_cinder_password: secrete
+  cinder_db_password: unset
+  ks_cinder_password: unset
 
-  heat_db_password: secrete
-  ks_heat_password: secrete
-  heat_auth_encryption_key: secrete
+  trove_db_password: unset
+  ks_trove_password: unset
+
+  heat_db_password: unset
+  ks_heat_password: unset
+  heat_auth_encryption_key: unset
+
   ceph_osd_devices:
-    - sda
+    - sdb
   ceph_fsid: 61d5c6c8-c57c-467d-8e4f-4681739ebd51
   ceph_mon_secret: AQBhcy5UkMWmNRAANEKFu8JOfDvfYofWLZecmg==
   cinder_rbd_pool: volumes
   cinder_rbd_user: cinder
 
-  libvirt_type: kvm
+  volume_default_volume_type: ceph
+  volume_cinder_backends:
+    rbd:
+      ceph:
+        rbd_pool: volumes
+        rbd_user: cinder
+        rbd_secret_uuid: 7b72abad-bbdc-4d3a-8238-bdbb43cbfcb2
 
+  libvirt_type: kvm
   syslog_server: install-server
-  syslog_port: 514
+  syslog_port: 5140
+
+  passenger_root: /usr/local/share/gems/gems/passenger-4.0.57
+  passenger_mod_lib_path: /usr/local/share/gems/gems/passenger-4.0.57/buildout/apache2/
