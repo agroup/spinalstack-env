@@ -60,6 +60,7 @@ config:
   domain: etest
   user: root
   puppet_master: install-server.etest
+  passenger_root: /usr/local/share/gems/gems/passenger-4.0.57
   parallel_steps: 2|4|5
   region: etest
   dns_ips: 8.8.8.8
