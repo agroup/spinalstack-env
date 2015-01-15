@@ -16,15 +16,11 @@ profiles:
       1:
         roles:
           - cloud::logging::server
-          - cloud::monitoring::server::sensu
   openstack-full:
     steps:
       1:
         roles:
           - cloud::logging::agent
-      3:
-        roles:
-          - cloud::monitoring::agent::sensu
 hosts:
   install-server:
     profile: install-server
@@ -82,40 +78,6 @@ hosts:
       kibana3::manage_ws: false
       kibana3::config_es_server: "%{::ipaddress}"
       kibana3::config_kibana_index: fluentd
-      sensu::server: true
-      sensu::api: true
-      sensu::subscriptions:
-        - base
-        - openstack-api
-      sensu::rabbitmq_password: rabbitpassword
-      sensu::rabbitmq_host: 10.151.68.54
-      sensu::rabbitmq_vhost: '/sensu'
-      sensu::install_repo: false
-      uchiwa::install_repo: false
-      uchiwa::user: admin
-      uchiwa::pass: password
-      uchiwa::host: "%{::ipaddress}"
-      uchiwa::install_repo: false
-      cloud::monitoring::server::sensu::checks:
-        'check-mem' :
-          command: '/etc/sensu/plugins/check-mem.sh -w 150 -c 100'
-          subscribers: base
-          standalone: false
-        'check_disk' :
-          command: '/usr/lib64/nagios/plugins/check_disk -w 80 -c 90 --path /'
-          subscribers: base
-          standalone: false
-        'check_load' :
-          command: '/usr/lib64/nagios/plugins/check_load -w 0.7,0.6,0.5 -c 0.9,0.8,0.7'
-          subscribers: base
-          standalone: false
-        'check_swap' :
-          command: '/usr/lib64/nagios/plugins/check_swap -w 50% -c 25%'
-          subscribers: base
-          standalone: false
-      cloud::monitoring::server::sensu::plugins:
-        'https://raw.githubusercontent.com/sensu/sensu-community-plugins/master/plugins/system/check-mem.sh' :
-          type: url
       cloud::logging::agent::sources:
         syslog:
           configfile: syslog
@@ -188,15 +150,6 @@ hosts:
       cloud::object::storage::ring_container_device: loop0
       cloud::object::storage::ring_account_device: loop0
       fluentd::version: '2'
-      sensu::subscriptions:
-        - base
-        - ceph
-        - openstack-swift
-        - openstack-amqp
-      sensu::rabbitmq_password: rabbitpassword
-      sensu::rabbitmq_host: SERVER1
-      sensu::rabbitmq_vhost: '/sensu'
-      sensu::install_repo: false
   openstack2:
     profile: openstack-full
     ip: SERVER2
@@ -249,15 +202,6 @@ hosts:
       cloud::object::storage::ring_container_device: loop0
       cloud::object::storage::ring_account_device: loop0
       fluentd::version: '2'
-      sensu::subscriptions:
-        - base
-        - ceph
-        - openstack-swift
-        - openstack-amqp
-      sensu::rabbitmq_password: rabbitpassword
-      sensu::rabbitmq_host: SERVER1
-      sensu::rabbitmq_vhost: '/sensu'
-      sensu::install_repo: false
   openstack3:
     profile: openstack-full
     ip: SERVER3
@@ -310,25 +254,18 @@ hosts:
       cloud::object::storage::ring_container_device: loop0
       cloud::object::storage::ring_account_device: loop0
       fluentd::version: '2'
-      sensu::subscriptions:
-        - base
-        - ceph
-        - openstack-swift
-        - openstack-amqp
-      sensu::rabbitmq_password: rabbitpassword
-      sensu::rabbitmq_host: SERVER1
-      sensu::rabbitmq_vhost: '/sensu'
-      sensu::install_repo: false
 config:
   current_version: I.1.2.1
   next_version: I.1.3.0
-  edeploy_master: os-ci-edeploy.etest
+  edeploy_master: install-server.etest
   domain: etest
-  user: jenkins
-  puppet_master: os-ci-test4.etest
+  user: root
+  puppet_master: install-server.etest
   parallel_steps: 2|4|5
   region: enovance-ci
-  dns_ips: 8.8.8.8
+  dns_ips:
+    - 8.8.8.8
+    - 192.168.122.1
   vip_public_fqdn: os-ci-vip.etest
   vip_public_ip: 192.0.2.20
   vip_admin_ip: 192.0.2.20
@@ -341,7 +278,7 @@ config:
   ceilometer_admin_proto: http
   ceilometer_internal_proto: http
   ceilometer_public_proto: http
-  mgmt_names: ['os-ci-test10', 'os-ci-test11', 'os-ci-test12']
+  mgmt_names: ['openstack1', 'openstack2', 'openstack3']
   mgmt_internal_ips: ['SERVER1', 'SERVER2', 'SERVER3']
   spof_cluster_members : 'openstack1 openstack2 openstack3'
   horizon_allowed_hosts:
