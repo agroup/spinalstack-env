@@ -8,8 +8,8 @@ infrastructure:
   https://github.com/enovance/openstack-yaml-infra.git
 jenkins:
   https://github.com/enovance/jjb-openstack.git
-infra: 3nodes
-scenario: 3nodes
+infra: 3nodes_cephless
+scenario: 3nodes_cephless
 hosts:
   install-server:
     profile: install-server
