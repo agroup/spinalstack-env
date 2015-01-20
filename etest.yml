@@ -241,7 +241,7 @@ config:
   galera_ip: 192.0.2.20
   vip_admin_fqdn: os-ci-vip.etest
   vip_internal_fqdn: os-ci-vip.etest
-  endpoint_protocol: https
+  endpoint_protocol: http
 
   ceilometer_admin_proto: http
   ceilometer_internal_proto: http
@@ -320,7 +320,7 @@ config:
 
   ks_neutron_password: unset
   neutron_db_password: unset
-  ks_neutron_admin_proto: https
+  ks_neutron_admin_proto: http
   neutron_type_drivers:
     - gre
   neutron_mechanism_drivers: openvswitch
