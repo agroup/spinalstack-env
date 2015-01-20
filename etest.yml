@@ -5,7 +5,7 @@ serverspec:
 environment:
   etest
 infrastructure:
-  https://github.com/enovance/openstack-yaml-infra.git
+  https://github.com/agroup/openstack-yaml-infra.git
 jenkins:
   https://github.com/enovance/jjb-openstack.git
 infra: 3nodes_cephless
