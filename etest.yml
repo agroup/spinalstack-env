@@ -395,3 +395,4 @@ config:
 
   passenger_root: /usr/local/share/gems/gems/passenger-4.0.57
   passenger_mod_lib_path: /usr/local/share/gems/gems/passenger-4.0.57/buildout/apache2/
+  glance_backend: file
