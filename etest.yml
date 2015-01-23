@@ -15,8 +15,8 @@ hosts:
     profile: install-server
     ip: 192.0.2.1
     config:
-      apache::mod::passenger::passenger_root: '/usr/local/share/gems/gems/passenger-4.0.57'
-      apache::mod::passenger::mod_lib_path: '/usr/local/share/gems/gems/passenger-4.0.57/buildout/apache2/'
+      apache::mod::passenger::passenger_root: '/usr/local/share/gems/gems/passenger-4.0.58'
+      apache::mod::passenger::mod_lib_path: '/usr/local/share/gems/gems/passenger-4.0.58/buildout/apache2/'
       cloud::install::puppetmaster::autosign_domains:
         - '*'
       cloud::install::puppetmaster::master_configuration:
@@ -393,6 +393,6 @@ config:
 
   libvirt_type: kvm
 
-  passenger_root: /usr/local/share/gems/gems/passenger-4.0.57
-  passenger_mod_lib_path: /usr/local/share/gems/gems/passenger-4.0.57/buildout/apache2/
+  passenger_root: /usr/local/share/gems/gems/passenger-4.0.58
+  passenger_mod_lib_path: /usr/local/share/gems/gems/passenger-4.0.58/buildout/apache2/
   glance_backend: file
