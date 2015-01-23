@@ -72,8 +72,6 @@ hosts:
     config:
       cloud::network::dhcp::veth_mtu: 1430
       cloud::spof::cluster_members: "openstack0 openstack1 openstack2"
-      cloud::compute::hypervisor::vm_rbd: true
-      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
@@ -124,8 +122,6 @@ hosts:
     config:
       cloud::network::dhcp::veth_mtu: 1430
       cloud::spof::cluster_members: "openstack0 openstack1 openstack2"
-      cloud::compute::hypervisor::vm_rbd: true
-      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
@@ -176,8 +172,6 @@ hosts:
     config:
       cloud::network::dhcp::veth_mtu: 1430
       cloud::spof::cluster_members: "openstack0 openstack1 openstack2"
-      cloud::compute::hypervisor::vm_rbd: true
-      cloud::compute::hypervisor::volume_rbd: true
       cloud::storage::rbd::osd::public_address: "%{hiera('public_netif_ip')}"
       cloud::storage::rbd::osd::cluster_address: "%{hiera('internal_netif_ip')}"
       cloud::storage::rbd::public_network: "%{hiera('ceph_public_network')}"
