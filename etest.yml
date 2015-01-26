@@ -1,7 +1,7 @@
 module:
   https://github.com/agroup/puppet-openstack-cloud.git
 serverspec:
-  https://github.com/enovance/openstack-serverspec.git
+  https://github.com/agroup/openstack-serverspec.git
 environment:
   etest
 infrastructure:
